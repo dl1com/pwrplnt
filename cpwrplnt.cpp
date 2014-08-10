@@ -5,20 +5,44 @@
 cPwrplnt::cPwrplnt()
 {
     // intentionally left blank
+}
+
+void cPwrplnt::init(void)
+{
+    // set up Pin Modes
     pinMode(PIN_BRIGHTNESS, INPUT);
 }
 
-void cPwrplnt::maintain(void)
+void cPwrplnt::maintain(Time time)
 {
     // do measurements
     performMeasurements();
     // act accordingly
+
+    // switch Lights according to time of day
+    // TODO
+
 
 }
 
 void cPwrplnt::setWateringDuration(byte sec)
 {
     m_wateringDuration = sec;
+}
+
+void cPwrplnt::setLightIntensity(byte intensity)
+{
+    m_lightIntensity = intensity;
+}
+
+void cPwrplnt::setSunriseTime(Time t)
+{
+    m_timeSunrise = t;
+}
+
+void cPwrplnt::setSunsetTime(Time t)
+{
+    m_timeSunset = t;
 }
 
 void cPwrplnt::performMeasurements(void)
@@ -35,6 +59,9 @@ void cPwrplnt::performMeasurements(void)
     m_airHumidity = DHT11.humidity;
 
     // soil humidity
+    // TODO
+
+    // tank water level
     // TODO
 }
 

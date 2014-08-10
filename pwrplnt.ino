@@ -15,6 +15,7 @@ void setup()
     rtc.halt(false);
 
 
+    Pwrplnt.init();
     Serial.println("initialized");
 }
 
@@ -28,7 +29,7 @@ void loop()
     {
         // work
         Serial.println("working");
-        Pwrplnt.maintain();
+        Pwrplnt.maintain(t);
     }
     t_old = t;
 
