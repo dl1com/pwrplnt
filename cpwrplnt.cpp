@@ -2,25 +2,65 @@
 
 #include "cpwrplnt.h"
 
+extern dht11 DHT11;
+extern DS1302 rtc;
+
 cPwrplnt::cPwrplnt()
 {
     // intentionally left blank
 }
 
-void cPwrplnt::init(void)
+void cPwrplnt::init(Time time)
 {
+    // Init Times
+    m_lastPumpStart = time;
+    m_lastPumpStop  = time;
     // set up Pin Modes
+    pinMode(PIN_MOISTURE, INPUT);
     pinMode(PIN_BRIGHTNESS, INPUT);
 }
 
 void cPwrplnt::maintain(Time time)
 {
-    // do measurements
+    // do measurements, then act accordingly
     performMeasurements();
-    // act accordingly
 
     // switch Lights according to time of day
-    // TODO
+    if(time.hour >= m_timeSunrise.hour
+        && time.min >= m_timeSunrise.min
+        && time.hour <= m_timeSunset.hour
+        && time.min <= m_timeSunset.min)
+    {
+        // Turn on lights
+        // TODO take currently measured brightness into account
+        setLight(m_lightIntensity);
+    }
+    else
+    {
+        // Turn of lights
+        setLight(0);
+    }
+
+    // Activate pump accordingly to soil moisture
+    /*
+    if(m_moisture < m_minMoisture)
+    {
+        // Only start pump if enough time has passed
+        // since the last time
+        // TODO compare and add operators for Time
+        if( time > (m_lastPumpStop + m_wateringPause))
+        {
+            switchPump(true);
+            m_lastPumpStart = time;
+        }
+    }
+
+    if(time > (m_lastPumpStart + m_wateringDuration))
+    {
+        switchPump(false);
+        m_lastPumpStop = time;
+    }
+    */
 
 
 }
@@ -47,9 +87,11 @@ void cPwrplnt::setSunsetTime(Time t)
 
 void cPwrplnt::performMeasurements(void)
 {
+    unsigned int tmp_meas;
+
     // brightness
-    m_brightness = 1023-analogRead(PIN_BRIGHTNESS);
-    m_brightness = ((m_brightness*100)/1023);
+    tmp_meas = 1023-analogRead(PIN_BRIGHTNESS);
+    m_brightness = (byte)((tmp_meas*100)/1023);
 
     // air humidity
     // air temperature
@@ -58,11 +100,12 @@ void cPwrplnt::performMeasurements(void)
     m_temperature = DHT11.temperature;
     m_airHumidity = DHT11.humidity;
 
-    // soil humidity
-    // TODO
+    // soil moisture
+    tmp_meas = analogRead(PIN_MOISTURE);
+    m_moisture = (byte)((m_brightness*100)/1023);
 
     // tank water level
-    // TODO
+    // TODO implement
 }
 
 void cPwrplnt::switchPump(bool state)
