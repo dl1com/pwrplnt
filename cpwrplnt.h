@@ -6,21 +6,21 @@
 #include "Arduino.h"
 #include "settings.h"
 
+#include <Time.h>
 #include <dht11.h>
-#include <DS1302.h>
 
 class cPwrplnt
 {
 public:
     cPwrplnt();
 
-    void init(Time);
-    void maintain(Time);
+    void init(void);
+    void maintain(void);
 
     void setWateringDuration(byte sec);
     void setLightIntensity(byte intensity);
-    void setSunriseTime(Time);
-    void setSunsetTime(Time);
+    void setSunriseTime(time_t);
+    void setSunsetTime(time_t);
 
     //Getters
     // Settings
@@ -32,9 +32,9 @@ public:
         { return m_wateringPause; }
     byte getLightIntensity(void) const
         { return m_lightIntensity; }
-    Time getSunriseTime(void) const
+    time_t getSunriseTime(void) const
         { return m_timeSunrise; }
-    Time getSunsetTime(void) const
+    time_t getSunsetTime(void) const
         { return m_timeSunset; }
     // States
     bool getPumpState(void) const
@@ -69,12 +69,12 @@ private:
     /* time to forbid watering after watering */
     unsigned int m_wateringPause; /* (seconds) */
     byte m_lightIntensity;
-    Time m_timeSunrise;
-    Time m_timeSunset;
+    time_t m_timeSunrise;
+    time_t m_timeSunset;
     // States
     bool m_pumpState;
-    Time m_lastPumpStart;
-    Time m_lastPumpStop;
+    time_t m_lastPumpStart;
+    time_t m_lastPumpStop;
     byte m_lightState;
     // Measurements
     byte m_moisture;     /* (%) */

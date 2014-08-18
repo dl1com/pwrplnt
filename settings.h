@@ -15,6 +15,4 @@
 
 #define MAINTENANCE_INTERVAL 5 /* minutes */
 
-
-
 #endif SETTINGS_H

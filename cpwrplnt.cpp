@@ -3,33 +3,35 @@
 #include "cpwrplnt.h"
 
 extern dht11 DHT11;
-extern DS1302 rtc;
 
 cPwrplnt::cPwrplnt()
 {
     // intentionally left blank
 }
 
-void cPwrplnt::init(Time time)
+void cPwrplnt::init(void)
 {
+    time_t tnow = now();
     // Init Times
-    m_lastPumpStart = time;
-    m_lastPumpStop  = time;
+    m_lastPumpStart = tnow;
+    m_lastPumpStop  = tnow;
     // set up Pin Modes
     pinMode(PIN_MOISTURE, INPUT);
     pinMode(PIN_BRIGHTNESS, INPUT);
 }
 
-void cPwrplnt::maintain(Time time)
+void cPwrplnt::maintain(void)
 {
     // do measurements, then act accordingly
     performMeasurements();
 
+    time_t tnow = now();
     // switch Lights according to time of day
-    if(time.hour >= m_timeSunrise.hour
-        && time.min >= m_timeSunrise.min
-        && time.hour <= m_timeSunset.hour
-        && time.min <= m_timeSunset.min)
+    // TODO perhaps call using TimeAlarms lib
+    if(hour(tnow) >= hour(m_timeSunrise)
+        && minute(tnow) >= minute(m_timeSunrise)
+        && hour(tnow) <= hour(m_timeSunset)
+        && minute(tnow) <= minute(m_timeSunset))
     {
         // Turn on lights
         // TODO take currently measured brightness into account
@@ -75,12 +77,12 @@ void cPwrplnt::setLightIntensity(byte intensity)
     m_lightIntensity = intensity;
 }
 
-void cPwrplnt::setSunriseTime(Time t)
+void cPwrplnt::setSunriseTime(time_t t)
 {
     m_timeSunrise = t;
 }
 
-void cPwrplnt::setSunsetTime(Time t)
+void cPwrplnt::setSunsetTime(time_t t)
 {
     m_timeSunset = t;
 }

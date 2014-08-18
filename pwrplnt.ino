@@ -3,6 +3,7 @@
 #include "Arduino.h"
 #include <SerialCommand.h>
 
+#include <Time.h>
 #include <dht11.h>
 #include <DS1302.h>
 
@@ -24,8 +25,13 @@ void setup()
 
     /*set rtc to running mode */
     rtc.halt(false);
+    setSyncProvider(getTime);
+    if(timeStatus()!= timeSet) 
+    {
+        Serial.println("Unable to sync with the RTC");
+    }
 
-    Pwrplnt.init(rtc.getTime());
+    Pwrplnt.init();
 
     // Setup callbacks for SerialCommand commands
     sCmd.addCommand("help",    showHelp);
@@ -39,17 +45,16 @@ void setup()
 void loop()
 {
     // read time and decide to call pwrplnt maintenance
-    static Time t_old;    
-    Time t = rtc.getTime();
-    if(t.min != t_old.min 
-        && !(t.min % MAINTENANCE_INTERVAL))
+    static time_t t_old;    
+    time_t t_now = now();
+    if(minute(t_now) != minute(t_old) 
+        && !(minute(t_now) % MAINTENANCE_INTERVAL))
     {
         // work
         Serial.println("working");
-        Pwrplnt.maintain(t);
+        Pwrplnt.maintain();
     }
-    t_old = t;
-
+    t_old = t_now;
 }
 
 void showHelp() {
@@ -62,6 +67,16 @@ void showHelp() {
 
 void showStatus() {
     Serial.println();
+    Serial.print(day());
+    Serial.print(".");
+    Serial.print(month());
+    Serial.print(".");
+    Serial.println(year());
+    Serial.print(hour());
+    Serial.print(":");
+    Serial.print(minute());
+    Serial.print(":");
+    Serial.println(second());
     Serial.println(rtc.getTimeStr());
     Serial.print(" Temperature: ");
     Serial.println(Pwrplnt.getTemperature());
@@ -90,15 +105,27 @@ void showSettings() {
     Serial.println(Pwrplnt.getWateringPause());
     Serial.print(" Light Intensity: ");
     Serial.println(Pwrplnt.getLightIntensity());
-    // TODO print methods for Time
-    /*
     Serial.print(" Sunrise Time: ");
     Serial.println(Pwrplnt.getSunriseTime());
     Serial.print(" Sunset Time: ");
     Serial.println(Pwrplnt.getSunsetTime());
-    */
 }
 
 void unrecognized(const char *command) {
   showHelp();
+}
+
+// Helper function to get time from RTC module
+time_t getTime()
+{
+  Time t = rtc.getTime();
+  tmElements_t tm;
+  tm.Second = t.sec;   
+  tm.Minute = t.min;
+  tm.Hour   = t.hour;  // mask assumes 24hr clock
+  tm.Wday   = t.dow;
+  tm.Day    = t.date;
+  tm.Month  = t.mon;
+  tm.Year   = t.year;
+  return(makeTime(tm));
 }
