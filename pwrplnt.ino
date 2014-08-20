@@ -3,33 +3,23 @@
 #include "Arduino.h"
 #include <SerialCommand.h>
 
+#include <Wire.h>  
 #include <Time.h>
-#include <dht11.h>
-#include <DS1302.h>
+#include <DS1307RTC.h>  // a basic DS1307 library that returns time as a time_t
 
 #include "settings.h"
 #include "cpwrplnt.h"
 
-dht11 DHT11;
-DS1302 rtc(PIN_DS1302_CE, 
-            PIN_DS1302_IO,
-            PIN_DS1302_SCLK);
-
-cPwrplnt Pwrplnt;
-
 SerialCommand sCmd;
+cPwrplnt Pwrplnt;
 
 void setup()
 {
     Serial.begin(115200);
 
-    /*set rtc to running mode */
-    rtc.halt(false);
-    setSyncProvider(getTime);
+    setSyncProvider(RTC.get);   // the function to get the time from the RTC
     if(timeStatus()!= timeSet) 
-    {
-        Serial.println("Unable to sync with the RTC");
-    }
+    { Serial.println("Unable to sync with the RTC"); }
 
     Pwrplnt.init();
 
@@ -37,24 +27,28 @@ void setup()
     sCmd.addCommand("help",    showHelp);
     sCmd.addCommand("showStatus", showStatus);
     sCmd.addCommand("showSettings", showSettings);
-    sCmd.setDefaultHandler(unrecognized);      // Handler for command that isn't matched  (says "What?")
+    sCmd.addCommand("setTime",  setRTCTime);
+    sCmd.setDefaultHandler(unrecognized);      
 
     Serial.println("initialized");
 }
 
 void loop()
 {
+    static bool worked = false;
     // read time and decide to call pwrplnt maintenance
-    static time_t t_old;    
-    time_t t_now = now();
-    if(minute(t_now) != minute(t_old) 
-        && !(minute(t_now) % MAINTENANCE_INTERVAL))
+    if(!(minute() % MAINTENANCE_INTERVAL)
+        && !worked)
     {
         // work
         Serial.println("working");
         Pwrplnt.maintain();
+        worked = true;
     }
-    t_old = t_now;
+    else if (minute() % MAINTENANCE_INTERVAL)
+    {
+        worked = false;
+    }
 }
 
 void showHelp() {
@@ -62,6 +56,7 @@ void showHelp() {
   Serial.println("Available Commands:");
   Serial.println("showStatus");
   Serial.println("showSettings");
+  Serial.println("setRTCTime [year] [mon] [day] [hour] [min] [sec]");
   Serial.println();
 }
 
@@ -77,7 +72,6 @@ void showStatus() {
     Serial.print(minute());
     Serial.print(":");
     Serial.println(second());
-    Serial.println(rtc.getTimeStr());
     Serial.print(" Temperature: ");
     Serial.println(Pwrplnt.getTemperature());
     Serial.print(" Air Humidity: ");
@@ -86,8 +80,8 @@ void showStatus() {
     Serial.println(Pwrplnt.getMoisture());
     Serial.print(" Brightness: ");
     Serial.println(Pwrplnt.getBrightness());
-    Serial.print(" Low Water Level: ");
-    Serial.println(Pwrplnt.getLowWaterLevel());
+    Serial.print(" Water Level Ok?: ");
+    Serial.println(Pwrplnt.getWaterLevelOk());
     Serial.println();
     Serial.print(" Pump State: ");
     Serial.println(Pwrplnt.getPumpState());
@@ -99,6 +93,8 @@ void showSettings() {
     Serial.println();
     Serial.print(" Minimum Soil Moisture: ");
     Serial.println(Pwrplnt.getMinMoisture());
+    Serial.print(" Targeted Soil Moisture: ");
+    Serial.println(Pwrplnt.getTargetMoisture());
     Serial.print(" Watering Duration: ");
     Serial.println(Pwrplnt.getWateringDuration());
     Serial.print(" Watering Pause: ");
@@ -111,21 +107,39 @@ void showSettings() {
     Serial.println(Pwrplnt.getSunsetTime());
 }
 
-void unrecognized(const char *command) {
-  showHelp();
+void setRTCTime() {
+  char *arg;
+  tmElements_t tm;
+
+  arg = sCmd.next();    
+  if (arg != NULL) {    
+    tm.Year = atoi(arg);
+  } else return;
+  arg = sCmd.next();    
+  if (arg != NULL) {    
+    tm.Month = atoi(arg);
+  } else return;
+  arg = sCmd.next();
+  if (arg != NULL) {
+    tm.Day = atoi(arg);
+  } else return;
+  arg = sCmd.next();
+  if (arg != NULL) {
+    tm.Hour = atoi(arg);
+  } else return;
+  arg = sCmd.next();
+  if (arg != NULL) {
+    tm.Minute = atoi(arg);
+  } else return;
+  arg = sCmd.next();
+  if (arg != NULL) {
+    tm.Second = atoi(arg);
+  } else return;  
+  
+  //set time to RTC module
+  RTC.set(makeTime(tm));
 }
 
-// Helper function to get time from RTC module
-time_t getTime()
-{
-  Time t = rtc.getTime();
-  tmElements_t tm;
-  tm.Second = t.sec;   
-  tm.Minute = t.min;
-  tm.Hour   = t.hour;  // mask assumes 24hr clock
-  tm.Wday   = t.dow;
-  tm.Day    = t.date;
-  tm.Month  = t.mon;
-  tm.Year   = t.year;
-  return(makeTime(tm));
+void unrecognized(const char *command) {
+  showHelp();
 }

@@ -2,22 +2,34 @@
 
 #include "cpwrplnt.h"
 
-extern dht11 DHT11;
+#include <dht11.h>
+dht11 DHT11;
 
-cPwrplnt::cPwrplnt()
+cPwrplnt::cPwrplnt() : 
+    m_doActions(false),
+    m_minMoisture(0),
+    m_targetMoisture(0),
+    m_wateringDuration(0),
+    m_wateringPause(0),
+    m_lightIntensity(255),
+    m_timeSunrise(0),
+    m_timeSunset(0)
 {
     // intentionally left blank
 }
 
 void cPwrplnt::init(void)
 {
+    // set up Pin Modes
+    pinMode(PIN_MOISTURE, INPUT);
+    pinMode(PIN_BRIGHTNESS, INPUT);
+    
+    // TODO read from EEPROM
     time_t tnow = now();
     // Init Times
     m_lastPumpStart = tnow;
     m_lastPumpStop  = tnow;
-    // set up Pin Modes
-    pinMode(PIN_MOISTURE, INPUT);
-    pinMode(PIN_BRIGHTNESS, INPUT);
+
 }
 
 void cPwrplnt::maintain(void)
@@ -25,46 +37,10 @@ void cPwrplnt::maintain(void)
     // do measurements, then act accordingly
     performMeasurements();
 
-    time_t tnow = now();
-    // switch Lights according to time of day
-    // TODO perhaps call using TimeAlarms lib
-    if(hour(tnow) >= hour(m_timeSunrise)
-        && minute(tnow) >= minute(m_timeSunrise)
-        && hour(tnow) <= hour(m_timeSunset)
-        && minute(tnow) <= minute(m_timeSunset))
+    if(m_doActions)
     {
-        // Turn on lights
-        // TODO take currently measured brightness into account
-        setLight(m_lightIntensity);
+        performActions();
     }
-    else
-    {
-        // Turn of lights
-        setLight(0);
-    }
-
-    // Activate pump accordingly to soil moisture
-    /*
-    if(m_moisture < m_minMoisture)
-    {
-        // Only start pump if enough time has passed
-        // since the last time
-        // TODO compare and add operators for Time
-        if( time > (m_lastPumpStop + m_wateringPause))
-        {
-            switchPump(true);
-            m_lastPumpStart = time;
-        }
-    }
-
-    if(time > (m_lastPumpStart + m_wateringDuration))
-    {
-        switchPump(false);
-        m_lastPumpStop = time;
-    }
-    */
-
-
 }
 
 void cPwrplnt::setWateringDuration(byte sec)
@@ -91,7 +67,7 @@ void cPwrplnt::performMeasurements(void)
 {
     unsigned int tmp_meas;
 
-    // brightness
+    // brightness (%)
     tmp_meas = 1023-analogRead(PIN_BRIGHTNESS);
     m_brightness = (byte)((tmp_meas*100)/1023);
 
@@ -102,12 +78,63 @@ void cPwrplnt::performMeasurements(void)
     m_temperature = DHT11.temperature;
     m_airHumidity = DHT11.humidity;
 
-    // soil moisture
+    // soil moisture (%)
     tmp_meas = analogRead(PIN_MOISTURE);
     m_moisture = (byte)((m_brightness*100)/1023);
 
     // tank water level
     // TODO implement
+}
+
+void cPwrplnt::performActions(void)
+{    
+    time_t tnow = now();
+
+    // switch Lights according to time of day
+    // TODO perhaps call using TimeAlarms lib
+    // or make use of time_t and modulo
+    if(hour(tnow) >= hour(m_timeSunrise)
+        && minute(tnow) >= minute(m_timeSunrise)
+        && hour(tnow) <= hour(m_timeSunset)
+        && minute(tnow) <= minute(m_timeSunset))
+    {
+        // Turn on lights
+        // TODO take currently measured brightness into account
+        setLight(m_lightIntensity);
+    }
+    else
+    {
+        // Turn of lights
+        setLight(0);
+    }
+
+    // TODO add measurement of reservoir level
+    if( true /* !m_waterLevelOk */)
+    {
+        // Activate pump accordingly to soil moisture
+        if(m_moisture < m_minMoisture)
+        {
+            // Only start pump if enough time has passed
+            // since the last stop
+            // and pump is off
+            if(tnow > (m_lastPumpStop + m_wateringPause)
+                && false == m_pumpState)
+            {
+                switchPump(true);
+                m_lastPumpStart = tnow;
+            }
+        }
+
+        // Stop pump if moisture level is reached or timeout
+        // and pump is running
+        if ((m_moisture > m_targetMoisture)
+            || (tnow > (m_lastPumpStart + m_wateringDuration))
+            && true == m_pumpState)
+        {
+            switchPump(false);
+            m_lastPumpStop = tnow;
+        }
+    }
 }
 
 void cPwrplnt::switchPump(bool state)
