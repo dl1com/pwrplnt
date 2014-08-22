@@ -1,6 +1,8 @@
 //pwrplnt.ino
 
 #include "Arduino.h"
+#include <SPI.h>
+#include <Ethernet.h>
 #include <SerialCommand.h>
 
 #include <Wire.h> 
@@ -12,12 +14,21 @@
 #include "cpwrplnt.h"
 
 SerialCommand sCmd;
+EthernetClient ethernetClient;
 cPwrplnt Pwrplnt;
 
+byte MACaddress[] = {0xDE,0xAD,0xBE,0xEF,0xFE,0xED};
+byte IPaddress[] = {192,168,1,123};
+byte DNSserverIPaddress[] = {8,8,8,8};
+byte gatewayIPaddress[] = { 192, 168, 1, 1 };
+byte subnet[] = { 255, 255, 255, 0 };
+char serverName[] = "dweet.io";
 
 void setup()
 {
     Serial.begin(115200);
+
+    Ethernet.begin(MACaddress, IPaddress, DNSserverIPaddress, gatewayIPaddress, subnet);
 
     // set up Pin Modes
     pinMode(PIN_MOISTURE, INPUT);
@@ -66,6 +77,16 @@ void loop()
         Serial.println("working...");
         Pwrplnt.maintain();
         worked = true;
+
+        // Reporting to dweet.io
+        if(ethernetClient.connect(serverName, 80))
+        {
+          Serial.println("Dweeting...");
+          ethernetClient.println("GET /dweet/for/pwrplnt?hello=world&foo=bar HTTP/1.1");
+          ethernetClient.print("HOST ");
+          ethernetClient.println(serverName);
+          ethernetClient.println();
+        }
     }
 }
 
