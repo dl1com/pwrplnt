@@ -1,35 +1,42 @@
 //cpwrplnt.cpp
-
 #include "cpwrplnt.h"
+
+#include "eepromanything.h"
 
 #include <dht11.h>
 dht11 DHT11;
 
 cPwrplnt::cPwrplnt() : 
-    m_doActions(false),
-    m_minMoisture(0),
-    m_targetMoisture(0),
-    m_wateringDuration(0),
-    m_wateringPause(0),
+    m_doActions(true),
+    m_minMoisture(20),
+    m_targetMoisture(80),
+    m_wateringDuration(10),
+    m_wateringPause(60),
     m_lightIntensity(255),
-    m_timeSunrise(0),
-    m_timeSunset(0)
+    m_timeSunrise(28000), // 08:00
+    m_timeSunset(72000)   // 20:00
 {
     // intentionally left blank
 }
 
 void cPwrplnt::init(void)
 {
-    // set up Pin Modes
-    pinMode(PIN_MOISTURE, INPUT);
-    pinMode(PIN_BRIGHTNESS, INPUT);
-    
-    // TODO read from EEPROM
     time_t tnow = now();
     // Init Times
     m_lastPumpStart = tnow;
     m_lastPumpStop  = tnow;
 
+    EEPROM_readAnything(ADDR_ACTIVE, m_doActions);
+    EEPROM_readAnything(ADDR_MINMOISTURE, m_minMoisture);
+    EEPROM_readAnything(ADDR_TARGETMOISTURE, m_targetMoisture);
+    EEPROM_readAnything(ADDR_WATERINGDURATION, m_wateringDuration);
+    EEPROM_readAnything(ADDR_WATERINGPAUSE, m_wateringPause);
+    EEPROM_readAnything(ADDR_LIGHTINTENSITY, m_lightIntensity);
+    //EEPROM_readAnything(ADDR_SUNRISETIME, m_timeSunrise);
+    //EEPROM_readAnything(ADDR_SUNSETTIME, m_timeSunset);
+    // TODO remove when able to write times via serial
+    m_timeSunset = 28000;
+    m_timeSunrise = 72000;
 }
 
 void cPwrplnt::maintain(void)
@@ -43,28 +50,70 @@ void cPwrplnt::maintain(void)
     }
 }
 
+void cPwrplnt::setActive(bool active)
+{
+    m_doActions = active;
+    EEPROM_writeAnything(ADDR_ACTIVE, m_doActions);
+}
+
+void cPwrplnt::setMinMoisture(byte minMoisture)
+{
+    if(0 <= minMoisture && minMoisture <= 100)
+    {
+        m_minMoisture = minMoisture;
+        EEPROM_writeAnything(ADDR_MINMOISTURE, m_minMoisture);
+    }
+}
+
+void cPwrplnt::setTargetMoisture(byte targetMoisture)
+{
+    if(0 <= targetMoisture && targetMoisture <= 100)
+    {
+        m_targetMoisture = targetMoisture;
+        EEPROM_writeAnything(ADDR_TARGETMOISTURE, m_targetMoisture);
+    }
+}
+
 void cPwrplnt::setWateringDuration(byte sec)
 {
     m_wateringDuration = sec;
+    EEPROM_writeAnything(ADDR_WATERINGDURATION, m_wateringDuration);
+}
+
+void cPwrplnt::setWateringPause(byte sec)
+{
+    m_wateringPause = sec;
+    EEPROM_writeAnything(ADDR_WATERINGPAUSE, m_wateringPause);
 }
 
 void cPwrplnt::setLightIntensity(byte intensity)
 {
     m_lightIntensity = intensity;
+    EEPROM_writeAnything(ADDR_LIGHTINTENSITY, m_lightIntensity);
 }
 
 void cPwrplnt::setSunriseTime(time_t t)
 {
-    m_timeSunrise = t;
+    if(t < SECS_PER_DAY)
+    {
+        m_timeSunrise = t;
+        EEPROM_writeAnything(ADDR_SUNRISETIME, m_timeSunrise);
+    }
 }
 
 void cPwrplnt::setSunsetTime(time_t t)
 {
-    m_timeSunset = t;
+    if(t < SECS_PER_DAY)
+    {
+        m_timeSunset = t;
+        EEPROM_writeAnything(ADDR_SUNSETTIME, m_timeSunset);
+    }
 }
 
 void cPwrplnt::performMeasurements(void)
 {
+    Serial.println(" performMeasurements");
+
     unsigned int tmp_meas;
 
     // brightness (%)
@@ -84,42 +133,44 @@ void cPwrplnt::performMeasurements(void)
 
     // tank water level
     // TODO implement
+    m_waterLevelOk = true;
 }
 
 void cPwrplnt::performActions(void)
 {    
+    Serial.println(" performActions");
     time_t tnow = now();
 
     // switch Lights according to time of day
-    // TODO perhaps call using TimeAlarms lib
-    // or make use of time_t and modulo
-    if(hour(tnow) >= hour(m_timeSunrise)
-        && minute(tnow) >= minute(m_timeSunrise)
-        && hour(tnow) <= hour(m_timeSunset)
-        && minute(tnow) <= minute(m_timeSunset))
+    if(elapsedSecsToday(tnow) > m_timeSunrise
+        && elapsedSecsToday(tnow) < m_timeSunset)
     {
         // Turn on lights
         // TODO take currently measured brightness into account
         setLight(m_lightIntensity);
+        Serial.println("  Lights on");
     }
     else
     {
-        // Turn of lights
+        // Turn the lights off
         setLight(0);
+        Serial.println("  Lights off");
     }
 
-    // TODO add measurement of reservoir level
-    if( true /* !m_waterLevelOk */)
+    // only act with the pump if the level is ok
+    if(m_waterLevelOk)
     {
         // Activate pump accordingly to soil moisture
         if(m_moisture < m_minMoisture)
         {
+            Serial.println("  too dry!");
             // Only start pump if enough time has passed
             // since the last stop
             // and pump is off
             if(tnow > (m_lastPumpStop + m_wateringPause)
                 && false == m_pumpState)
             {
+                Serial.println("  Pump On");
                 switchPump(true);
                 m_lastPumpStart = tnow;
             }
@@ -131,20 +182,30 @@ void cPwrplnt::performActions(void)
             || (tnow > (m_lastPumpStart + m_wateringDuration))
             && true == m_pumpState)
         {
+            Serial.println("  Pump off");
             switchPump(false);
             m_lastPumpStop = tnow;
         }
+    }
+    else
+    {   // not enough water in reservoir
+        Serial.println("  Reservoir low!");
+        switchPump(false);
+        m_lastPumpStop = tnow; 
     }
 }
 
 void cPwrplnt::switchPump(bool state)
 {
     m_pumpState = state;
-    digitalWrite(PIN_PUMPRELAIS, m_pumpState);
+    // Relay works inverted
+    digitalWrite(PIN_PUMPRELAIS, !m_pumpState);
 }
 
 void cPwrplnt::setLight(byte intensity)
 {
     m_lightState = intensity;
-    analogWrite(PIN_LIGHTPWM, m_lightState);
+    // Relais works inverted
+    digitalWrite(PIN_LIGHTPWM, !m_lightState);
+    // TODO do PWM analogWrite(PIN_LIGHTPWM, !m_lightState);
 }

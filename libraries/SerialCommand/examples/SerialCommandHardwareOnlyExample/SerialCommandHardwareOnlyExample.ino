@@ -2,8 +2,12 @@
 // Steven Cogswell
 // May 2011
 
-#include <SoftwareSerial.h>   // We need this even if we're not using a SoftwareSerial object
-                              // Due to the way the Arduino IDE compiles
+// If you want to use HardwareSerial only, and not have to include SoftwareSerial support, you 
+// can define SERIALCOMMAND_HARDWAREONLY in SerialCommand.h, which will cause it to build without
+// SoftwareSerial support.   This makes the library act as it used to before SoftwareSerial 
+// support was added, and you don't need this next include: 
+//#include <SoftwareSerial.h>  
+
 #include <SerialCommand.h>
 
 #define arduinoLED 13   // Arduino LED on board
@@ -15,7 +19,7 @@ void setup()
   pinMode(arduinoLED,OUTPUT);      // Configure the onboard LED for output
   digitalWrite(arduinoLED,LOW);    // default to LED off
 
-  Serial.begin(115200); 
+  Serial.begin(9600); 
 
   // Setup callbacks for SerialCommand commands 
   SCmd.addCommand("ON",LED_on);       // Turns LED on

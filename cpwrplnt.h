@@ -8,7 +8,16 @@
 
 #include <Time.h>
 
-
+enum {
+    ADDR_ACTIVE         = 0,
+    ADDR_MINMOISTURE    = 1,
+    ADDR_TARGETMOISTURE = 2,
+    ADDR_WATERINGDURATION = 3,
+    ADDR_WATERINGPAUSE  = 4,
+    ADDR_LIGHTINTENSITY = 5,
+    ADDR_SUNRISETIME    = 6, /*long*/
+    ADDR_SUNSETTIME    = 10  /*long*/
+};
 
 
 class cPwrplnt
@@ -19,20 +28,26 @@ public:
     void init(void);
     void maintain(void);
 
+    void setActive(bool);
+    void setMinMoisture(byte);
+    void setTargetMoisture(byte);
     void setWateringDuration(byte sec);
+    void setWateringPause(byte sec);
     void setLightIntensity(byte intensity);
     void setSunriseTime(time_t);
     void setSunsetTime(time_t);
 
     //Getters
     // Settings
+    bool getActive(void) const
+        { return m_doActions; }
     byte getMinMoisture(void) const
         { return m_minMoisture; }
     byte getTargetMoisture(void) const
         { return m_targetMoisture; }
-    unsigned int getWateringDuration(void) const
+    byte getWateringDuration(void) const
         { return m_wateringDuration; }
-    unsigned int getWateringPause(void) const
+    byte getWateringPause(void) const
         { return m_wateringPause; }
     byte getLightIntensity(void) const
         { return m_lightIntensity; }
@@ -78,9 +93,9 @@ private:
     /* Moisture level to stop watering */
     byte m_targetMoisture; /* (%) */
     /* time the pump is running when watering */
-    unsigned int m_wateringDuration; /* (seconds) */
+    byte m_wateringDuration; /* (seconds) */
     /* time to wait for water to settle, before allowing new watering */
-    unsigned int m_wateringPause; /* (seconds) */
+    byte m_wateringPause; /* (seconds) */
     byte m_lightIntensity; /* 0-255 */
     time_t m_timeSunrise;
     time_t m_timeSunset;
