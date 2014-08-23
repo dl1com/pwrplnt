@@ -34,17 +34,6 @@ void cPwrplnt::init(void)
     EEPROM_readAnything(ADDR_LASTPUMPSTOP, m_lastPumpStop);
 }
 
-void cPwrplnt::maintain(void)
-{
-    // do measurements, then act accordingly
-    performMeasurements();
-
-    if(m_doActions)
-    {
-        performActions();
-    }
-}
-
 void cPwrplnt::setActive(bool active)
 {
     m_doActions = active;
@@ -133,6 +122,12 @@ void cPwrplnt::performMeasurements(void)
 
 void cPwrplnt::performActions(void)
 {    
+    if(!m_doActions)
+    {
+        Serial.println(" Pwrplnt disabled");
+        return;
+    }
+
     Serial.println(" performActions");
     time_t tnow = now();
 

@@ -58,8 +58,11 @@ void setup()
     sCmd.addCommand("setTime",  setRTCTime);
     sCmd.addDefaultHandler(showHelp);      
 
+    // Show current settings to user
     showSettings();
-    Pwrplnt.maintain();
+
+    // do inital measurements
+    Pwrplnt.performMeasurements();
 
 }
 
@@ -67,9 +70,11 @@ void loop()
 {
     sCmd.readSerial();
 
+    time_t tnow = now();
+
     static bool worked = true;
     // read time and decide to call pwrplnt maintenance
-    if (now() % MAINTENANCE_INTERVAL)
+    if (tnow % ACTION_INTERVAL)
     {
         worked = false;
     }
@@ -77,24 +82,39 @@ void loop()
     {
         // work
         Serial.println("working...");
-        Pwrplnt.maintain();
+        Pwrplnt.performMeasurements();
+        Pwrplnt.performActions();
         worked = true;
+    }
 
-        // Reporting to dweet.io
-        if(ethernetClient.connect(serverName, 80))
-        {
-          Serial.println("Dweeting...");
-          ethernetClient.print("GET /dweet/for/pwrplnt?");
-          ethernetClient.print("hello=");
-          ethernetClient.print("world");
-          ethernetClient.print("&foo=");
-          ethernetClient.print("bar");
+    static bool didDweet = false;
+    // read time and decide to Dweet
+    if (tnow % DWEET_INTERVAL)
+    {
+      didDweet = false;
+    }
+    else if(!didDweet)
+    {
+      Pwrplnt.performMeasurements();
+      // only one try to connect
+      // TODO add fibonacci timeout
+      didDweet = true;
 
-          ethernetClient.println(" HTTP/1.1");
+      // Reporting to dweet.io
+      if(ethernetClient.connect(serverName, 80))
+      {          
+        Serial.println("Dweeting...");
+        ethernetClient.print("GET /dweet/for/pwrplnt?");
+        ethernetClient.print("hello=");
+        ethernetClient.print("world");
+        ethernetClient.print("&foo=");
+        ethernetClient.print("bar");
 
-          ethernetClient.print("HOST ");
-          ethernetClient.println(serverName);
-          ethernetClient.println();
+        ethernetClient.println(" HTTP/1.1");
+
+        ethernetClient.print("HOST ");
+        ethernetClient.println(serverName);
+        ethernetClient.println();
         }
     }
 }

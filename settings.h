@@ -10,6 +10,7 @@
 #define PIN_DHT11       A11
 // Fuellstand A12
 
-#define MAINTENANCE_INTERVAL 5 /* seconds */
+#define ACTION_INTERVAL 5 /* seconds */
+#define DWEET_INTERVAL  30 /* seconds */
 
 #endif SETTINGS_H

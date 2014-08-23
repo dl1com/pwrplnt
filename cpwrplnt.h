@@ -28,7 +28,11 @@ public:
     cPwrplnt();
 
     void init(void);
-    void maintain(void);
+
+    /* get humidity, brightness, temperature */
+    void performMeasurements(void);
+    /* switch Light and Pump */
+    void performActions(void);
 
     void setActive(bool);
     void setMinMoisture(byte);
@@ -75,11 +79,6 @@ public:
         { return m_waterLevelOk; }
 
 private:
-
-    /* get humidity, brightness, temperature */
-    void performMeasurements(void);
-    /* switch Light and Pump */
-    void performActions(void);
 
     // Helper
     /* turn pump on or off */
