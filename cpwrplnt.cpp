@@ -35,8 +35,8 @@ void cPwrplnt::init(void)
     //EEPROM_readAnything(ADDR_SUNRISETIME, m_timeSunrise);
     //EEPROM_readAnything(ADDR_SUNSETTIME, m_timeSunset);
     // TODO remove when able to write times via serial
-    m_timeSunset = 28000;
-    m_timeSunrise = 72000;
+    m_timeSunrise = 28000;
+    m_timeSunset = 72000;
 }
 
 void cPwrplnt::maintain(void)
@@ -128,8 +128,8 @@ void cPwrplnt::performMeasurements(void)
     m_airHumidity = DHT11.humidity;
 
     // soil moisture (%)
-    tmp_meas = analogRead(PIN_MOISTURE);
-    m_moisture = (byte)((m_brightness*100)/1023);
+    tmp_meas = 1023-analogRead(PIN_MOISTURE);
+    m_moisture = (byte)((tmp_meas*100)/1023);
 
     // tank water level
     // TODO implement

@@ -59,6 +59,8 @@ void setup()
     sCmd.addDefaultHandler(showHelp);      
 
     showSettings();
+    Pwrplnt.maintain();
+
 }
 
 void loop()
@@ -267,8 +269,9 @@ void setRTCTime() {
   if (arg != NULL) {
     tm.Second = atoi(arg);
   } else return;  
-  
+
   //set time to RTC module
+  setTime(tm.Hour,tm.Minute,tm.Second,tm.Day,tm.Month,tm.Year);
   RTC.set(makeTime(tm));
   Serial.println("time set");
 }
