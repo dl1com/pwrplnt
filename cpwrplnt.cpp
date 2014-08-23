@@ -21,22 +21,17 @@ cPwrplnt::cPwrplnt() :
 
 void cPwrplnt::init(void)
 {
-    time_t tnow = now();
-    // Init Times
-    m_lastPumpStart = tnow;
-    m_lastPumpStop  = tnow;
-
+    // Read settings and states from EEPROM
     EEPROM_readAnything(ADDR_ACTIVE, m_doActions);
     EEPROM_readAnything(ADDR_MINMOISTURE, m_minMoisture);
     EEPROM_readAnything(ADDR_TARGETMOISTURE, m_targetMoisture);
     EEPROM_readAnything(ADDR_WATERINGDURATION, m_wateringDuration);
     EEPROM_readAnything(ADDR_WATERINGPAUSE, m_wateringPause);
     EEPROM_readAnything(ADDR_LIGHTINTENSITY, m_lightIntensity);
-    //EEPROM_readAnything(ADDR_SUNRISETIME, m_timeSunrise);
-    //EEPROM_readAnything(ADDR_SUNSETTIME, m_timeSunset);
-    // TODO remove when able to write times via serial
-    m_timeSunrise = 28000;
-    m_timeSunset = 72000;
+    EEPROM_readAnything(ADDR_SUNRISETIME, m_timeSunrise);
+    EEPROM_readAnything(ADDR_SUNSETTIME, m_timeSunset);
+    EEPROM_readAnything(ADDR_LASTPUMPSTART, m_lastPumpStart);
+    EEPROM_readAnything(ADDR_LASTPUMPSTOP, m_lastPumpStop);
 }
 
 void cPwrplnt::maintain(void)
@@ -163,16 +158,18 @@ void cPwrplnt::performActions(void)
         // Activate pump accordingly to soil moisture
         if(m_moisture < m_minMoisture)
         {
-            Serial.println("  too dry!");
+            Serial.print("  too dry!...");
             // Only start pump if enough time has passed
             // since the last stop
             // and pump is off
             if(tnow > (m_lastPumpStop + m_wateringPause)
                 && false == m_pumpState)
             {
-                Serial.println("  Pump On");
                 switchPump(true);
-                m_lastPumpStart = tnow;
+            }
+            else
+            {
+                Serial.println("but pump not allowed to start again yet");
             }
         }
 
@@ -181,17 +178,14 @@ void cPwrplnt::performActions(void)
         if ((m_moisture > m_targetMoisture)
             || (tnow > (m_lastPumpStart + m_wateringDuration))
             && true == m_pumpState)
-        {
-            Serial.println("  Pump off");
+        {            
             switchPump(false);
-            m_lastPumpStop = tnow;
         }
     }
     else
     {   // not enough water in reservoir
         Serial.println("  Reservoir low!");
-        switchPump(false);
-        m_lastPumpStop = tnow; 
+        switchPump(false); 
     }
 }
 
@@ -200,6 +194,20 @@ void cPwrplnt::switchPump(bool state)
     m_pumpState = state;
     // Relay works inverted
     digitalWrite(PIN_PUMPRELAIS, !m_pumpState);
+
+    if(m_pumpState)
+    {
+        Serial.println("  Pump on");        
+        m_lastPumpStart = now();
+        EEPROM_writeAnything(ADDR_LASTPUMPSTART, m_lastPumpStart);
+    }
+    else
+    {
+        Serial.println("  Pump off");        
+        m_lastPumpStop = now();
+        EEPROM_writeAnything(ADDR_LASTPUMPSTOP, m_lastPumpStop);
+    }
+
 }
 
 void cPwrplnt::setLight(byte intensity)

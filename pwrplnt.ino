@@ -84,7 +84,14 @@ void loop()
         if(ethernetClient.connect(serverName, 80))
         {
           Serial.println("Dweeting...");
-          ethernetClient.println("GET /dweet/for/pwrplnt?hello=world&foo=bar HTTP/1.1");
+          ethernetClient.print("GET /dweet/for/pwrplnt?");
+          ethernetClient.print("hello=");
+          ethernetClient.print("world");
+          ethernetClient.print("&foo=");
+          ethernetClient.print("bar");
+
+          ethernetClient.println(" HTTP/1.1");
+
           ethernetClient.print("HOST ");
           ethernetClient.println(serverName);
           ethernetClient.println();
@@ -98,13 +105,13 @@ void showHelp() {
   Serial.println("showStatus");
   Serial.println("showSettings");
   Serial.println("setActive");
-  Serial.println("setMinMoisture");
-  Serial.println("setTargetMoisture");
-  Serial.println("setWateringDuration");
-  Serial.println("setWateringPause");
-  Serial.println("setLightIntensity");
-  Serial.println("setSunriseTime");
-  Serial.println("setSunsetTime");
+  Serial.println("setMinMoisture [%]");
+  Serial.println("setTargetMoisture [%]");
+  Serial.println("setWateringDuration [sec]");
+  Serial.println("setWateringPause [sec]");
+  Serial.println("setLightIntensity [%]");
+  Serial.println("setSunriseTime [hour] [minute]");
+  Serial.println("setSunsetTime [hour] [minute]");
   Serial.println("setTime [year] [mon] [day] [hour] [min] [sec]");
   Serial.println();
 }
@@ -233,12 +240,48 @@ void setLightIntensity()
 
 void setSunriseTime()
 {
-  Serial.println("not implemented");
+  char *arg;
+  byte hour = 0;
+  byte minute = 0;
+  arg = sCmd.next();
+  if (arg != NULL) {
+    hour = atoi(arg);
+  }
+  else return;
+  arg = sCmd.next();
+  if (arg != NULL) {    
+    minute = atoi(arg);
+  }
+  else return;
+
+  Serial.print("Sunrise set to ");
+  Serial.print(hour);
+  Serial.print(":");
+  Serial.println(minute);
+  Pwrplnt.setSunriseTime((hour*3600) + (minute * 60));
 }
 
 void setSunsetTime()
 {
-  Serial.println("not implemented");
+  char *arg;
+  byte hour = 0;
+  byte minute = 0;
+  arg = sCmd.next();
+  if (arg != NULL) {
+    hour = atoi(arg);
+  }
+  else return;
+  arg = sCmd.next();
+  if (arg != NULL) {    
+    minute = atoi(arg);
+  }
+  else return;
+
+  Serial.print("Sunset set to ");
+  Serial.print(hour);
+  Serial.print(":");
+  Serial.println(minute);
+  Pwrplnt.setSunsetTime((hour*3600) + (minute * 60));
 }
 
 void setRTCTime() {

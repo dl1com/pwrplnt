@@ -16,7 +16,9 @@ enum {
     ADDR_WATERINGPAUSE  = 4,
     ADDR_LIGHTINTENSITY = 5,
     ADDR_SUNRISETIME    = 6, /*long*/
-    ADDR_SUNSETTIME    = 10  /*long*/
+    ADDR_SUNSETTIME    = 10, /*long*/
+    ADDR_LASTPUMPSTART = 14, /*long*/
+    ADDR_LASTPUMPSTOP  = 18  /*long*/
 };
 
 
