@@ -105,10 +105,22 @@ void loop()
       {          
         Serial.println("Dweeting...");
         ethernetClient.print("GET /dweet/for/pwrplnt?");
-        ethernetClient.print("hello=");
-        ethernetClient.print("world");
-        ethernetClient.print("&foo=");
-        ethernetClient.print("bar");
+        ethernetClient.print("active=");
+        ethernetClient.print(Pwrplnt.getActive());
+        ethernetClient.print("&temperature=");
+        ethernetClient.print(Pwrplnt.getTemperature());
+        ethernetClient.print("&airHumidity=");
+        ethernetClient.print(Pwrplnt.getAirHumidity());
+        ethernetClient.print("&brightness=");
+        ethernetClient.print(Pwrplnt.getBrightness());
+        ethernetClient.print("&moisture=");
+        ethernetClient.print(Pwrplnt.getMoisture());
+        ethernetClient.print("&waterLevelOk=");
+        ethernetClient.print(Pwrplnt.getAirHumidity());
+        ethernetClient.print("&pumpState=");
+        ethernetClient.print(Pwrplnt.getPumpState());
+        ethernetClient.print("&lightState=");
+        ethernetClient.print(Pwrplnt.getLightState());
 
         ethernetClient.println(" HTTP/1.1");
 

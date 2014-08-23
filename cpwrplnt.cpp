@@ -107,8 +107,9 @@ void cPwrplnt::performMeasurements(void)
     // air humidity
     // air temperature
     DHT11.read(PIN_DHT11);
-    // TODO temperature calibration
+    // TODO variable temperature calibration
     m_temperature = DHT11.temperature;
+    m_temperature -= 2; // Hard coded calibration
     m_airHumidity = DHT11.humidity;
 
     // soil moisture (%)
