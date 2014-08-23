@@ -116,7 +116,7 @@ void loop()
         ethernetClient.print("&moisture=");
         ethernetClient.print(Pwrplnt.getMoisture());
         ethernetClient.print("&waterLevelOk=");
-        ethernetClient.print(Pwrplnt.getAirHumidity());
+        ethernetClient.print(Pwrplnt.getWaterLevelOk());
         ethernetClient.print("&pumpState=");
         ethernetClient.print(Pwrplnt.getPumpState());
         ethernetClient.print("&lightState=");
