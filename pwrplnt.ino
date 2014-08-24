@@ -8,27 +8,27 @@
 #include <Wire.h> 
 #include <EEPROM.h> 
 #include <Time.h>
-#include <DS1307RTC.h>  // a basic DS1307 library that returns time as a time_t
+#include <DS1307RTC.h>
 
 #include "settings.h"
 #include "cpwrplnt.h"
+
+#include "plotly_streaming_ethernet.h"
+#include "plotly_setup.h"
 
 SerialCommand sCmd;
 EthernetClient ethernetClient;
 cPwrplnt Pwrplnt;
 
-byte MACaddress[] = {0xDE,0xAD,0xBE,0xEF,0xFE,0xED};
-byte IPaddress[] = {192,168,1,123};
+byte MACaddress[]         = {0xDE,0xAD,0xBE,0xEF,0xFE,0xED};
+byte IPaddress[]          = {192,168,1,123};
 byte DNSserverIPaddress[] = {8,8,8,8};
-byte gatewayIPaddress[] = { 192, 168, 1, 1 };
-byte subnet[] = { 255, 255, 255, 0 };
-char serverName[] = "dweet.io";
+byte gatewayIPaddress[]   = {192,168,1,1};
+byte subnet[]             = {255,255,255,0};
 
 void setup()
 {
     Serial.begin(115200);
-
-    Ethernet.begin(MACaddress, IPaddress, DNSserverIPaddress, gatewayIPaddress, subnet);
 
     // set up Pin Modes
     pinMode(PIN_MOISTURE, INPUT);
@@ -37,33 +37,28 @@ void setup()
     pinMode(PIN_PUMPRELAIS, OUTPUT);
     pinMode(PIN_LIGHTPWM, OUTPUT);
 
+    // set up timing device
     setSyncProvider(RTC.get);   // the function to get the time from the RTC
     if(timeStatus()!= timeSet) 
     { Serial.println("Unable to sync with the RTC"); }
 
+    // sCmd msg Handlers
+    addMsgHandlers();
+
+    // online logging
+    Ethernet.begin(MACaddress, IPaddress, DNSserverIPaddress, gatewayIPaddress, subnet);
+    // plot.ply
+    plotlygraph.fileopt="overwrite";
+    bool success = plotlygraph.init();
+    if(!success){while(true){}} // TODO while(true), rlly?
+    plotlygraph.openStream();     
+
+    // init Pwrplnt object
     Pwrplnt.init();
-
-    // Setup callbacks for SerialCommand commands
-    sCmd.addCommand("help",    showHelp);
-    sCmd.addCommand("showStatus", showStatus);
-    sCmd.addCommand("showSettings", showSettings);
-    sCmd.addCommand("setActive", setActive);
-    sCmd.addCommand("setMinMoisture", setMinMoisture);
-    sCmd.addCommand("setTargetMoisture", setTargetMoisture);
-    sCmd.addCommand("setWateringDuration", setWateringDuration);
-    sCmd.addCommand("setWateringPause", setWateringPause);
-    sCmd.addCommand("setLightIntensity", setLightIntensity);
-    sCmd.addCommand("setSunriseTime", setSunriseTime);
-    sCmd.addCommand("setSunsetTime", setSunsetTime);
-    sCmd.addCommand("setTime",  setRTCTime);
-    sCmd.addDefaultHandler(showHelp);      
-
     // Show current settings to user
     showSettings();
-
     // do inital measurements
     Pwrplnt.performMeasurements();
-
 }
 
 void loop()
@@ -101,7 +96,7 @@ void loop()
       didDweet = true;
 
       // Reporting to dweet.io
-      if(ethernetClient.connect(serverName, 80))
+      if(ethernetClient.connect("dweet.io", 80))
       {          
         Serial.println("Dweeting...");
         ethernetClient.print("GET /dweet/for/pwrplnt?");
@@ -121,14 +116,39 @@ void loop()
         ethernetClient.print(Pwrplnt.getPumpState());
         ethernetClient.print("&lightState=");
         ethernetClient.print(Pwrplnt.getLightState());
-
         ethernetClient.println(" HTTP/1.1");
-
-        ethernetClient.print("HOST ");
-        ethernetClient.println(serverName);
+        
+        ethernetClient.println("HOST dweet.io");
         ethernetClient.println();
-        }
+      }
+
+      // Reporting to plot.ly
+      plotlygraph.plot(tnow, Pwrplnt.getTemperature(), tokens[0]);
+      plotlygraph.plot(tnow, Pwrplnt.getAirHumidity(), tokens[1]);
+      plotlygraph.plot(tnow, Pwrplnt.getBrightness(), tokens[2]);
+      plotlygraph.plot(tnow, Pwrplnt.getMoisture(), tokens[3]);
+      plotlygraph.plot(tnow, Pwrplnt.getWaterLevelOk(), tokens[4]);
+      plotlygraph.plot(tnow, Pwrplnt.getPumpState(), tokens[5]);
+      plotlygraph.plot(tnow, Pwrplnt.getLightState(), tokens[6]);
     }
+}
+
+void addMsgHandlers()
+{
+    // Setup callbacks for SerialCommand commands
+    sCmd.addCommand("help",    showHelp);
+    sCmd.addCommand("showStatus", showStatus);
+    sCmd.addCommand("showSettings", showSettings);
+    sCmd.addCommand("setActive", setActive);
+    sCmd.addCommand("setMinMoisture", setMinMoisture);
+    sCmd.addCommand("setTargetMoisture", setTargetMoisture);
+    sCmd.addCommand("setWateringDuration", setWateringDuration);
+    sCmd.addCommand("setWateringPause", setWateringPause);
+    sCmd.addCommand("setLightIntensity", setLightIntensity);
+    sCmd.addCommand("setSunriseTime", setSunriseTime);
+    sCmd.addCommand("setSunsetTime", setSunsetTime);
+    sCmd.addCommand("setTime",  setRTCTime);
+    sCmd.addDefaultHandler(showHelp);
 }
 
 void showHelp() {

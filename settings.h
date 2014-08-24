@@ -8,9 +8,9 @@
 #define PIN_MOISTURE    A8
 #define PIN_BRIGHTNESS  A9
 #define PIN_DHT11       A11
-// Fuellstand A12
+// TODO Reservoir Level A12
 
 #define ACTION_INTERVAL 5 /* seconds */
 #define DWEET_INTERVAL  30 /* seconds */
 
-#endif SETTINGS_H
+#endif // SETTINGS_H
