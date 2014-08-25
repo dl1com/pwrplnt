@@ -7,6 +7,8 @@
 #define ENABLE_DWEETIO  1 // requires Ethernet
 #define ENABLE_PLOTLY   1 // requires Ethernet
 
+#define DWEETIO_THINGNAME "pwrplnt"
+
 #define PIN_PUMPRELAIS  23
 #define PIN_LIGHTPWM    22
 #define PIN_MOISTURE    A8

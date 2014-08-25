@@ -116,8 +116,9 @@ void loop()
       if(ethernetClient.connect("dweet.io", 80))
       {          
         Serial.println("Dweeting...");
-        ethernetClient.print("GET /dweet/for/pwrplnt?");
-        ethernetClient.print("active=");
+        ethernetClient.print("GET /dweet/for/");
+        ethernetClient.print(DWEETIO_THINGNAME);
+        ethernetClient.print("?active=");
         ethernetClient.print(Pwrplnt.getActive());
         ethernetClient.print("&temperature=");
         ethernetClient.print(Pwrplnt.getTemperature());
