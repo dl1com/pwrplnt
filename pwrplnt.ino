@@ -2,7 +2,7 @@
 
 #include "Arduino.h"
 #include <SPI.h>
-#include <Ethernet.h>
+
 #include <SerialCommand.h>
 
 #include <Wire.h> 
@@ -13,18 +13,24 @@
 #include "settings.h"
 #include "cpwrplnt.h"
 
-#include "plotly_streaming_ethernet.h"
-#include "plotly_setup.h"
+#if ENABLE_ETHERNET
+  #include <Ethernet.h>
+  byte MACaddress[]         = {0xDE,0xAD,0xBE,0xEF,0xFE,0xED};
+  byte IPaddress[]          = {192,168,1,123};
+  byte DNSserverIPaddress[] = {8,8,8,8};
+  byte gatewayIPaddress[]   = {192,168,1,1};
+  byte subnet[]             = {255,255,255,0};
+  EthernetClient ethernetClient;
+#endif //ENABLE_ETHERNET
+
+#if ENABLE_PLOTLY
+  #include "plotly_streaming_ethernet.h"
+  #include "plotly_setup.h"
+#endif //ENABLE_PLOTLY
 
 SerialCommand sCmd;
-EthernetClient ethernetClient;
-cPwrplnt Pwrplnt;
 
-byte MACaddress[]         = {0xDE,0xAD,0xBE,0xEF,0xFE,0xED};
-byte IPaddress[]          = {192,168,1,123};
-byte DNSserverIPaddress[] = {8,8,8,8};
-byte gatewayIPaddress[]   = {192,168,1,1};
-byte subnet[]             = {255,255,255,0};
+cPwrplnt Pwrplnt;
 
 void setup()
 {
@@ -45,13 +51,23 @@ void setup()
     // sCmd msg Handlers
     addMsgHandlers();
 
-    // online logging
-    Ethernet.begin(MACaddress, IPaddress, DNSserverIPaddress, gatewayIPaddress, subnet);
+#if ENABLE_ETHERNET
+    // for online logging and plotting
+    Ethernet.begin(
+      MACaddress, 
+      IPaddress, 
+      DNSserverIPaddress, 
+      gatewayIPaddress, 
+      subnet);
+#endif //ENABLE_ETHERNET
+
+#if ENABLE_PLOTLY
     // plot.ply
     plotlygraph.fileopt="overwrite";
     bool success = plotlygraph.init();
     if(!success){while(true){}} // TODO while(true), rlly?
-    plotlygraph.openStream();     
+    plotlygraph.openStream();
+#endif //ENABLE_PLOTLY     
 
     // init Pwrplnt object
     Pwrplnt.init();
@@ -95,6 +111,7 @@ void loop()
       // TODO add fibonacci timeout
       didDweet = true;
 
+#if ENABLE_DWEETIO
       // Reporting to dweet.io
       if(ethernetClient.connect("dweet.io", 80))
       {          
@@ -121,8 +138,11 @@ void loop()
         ethernetClient.println("HOST dweet.io");
         ethernetClient.println();
       }
+#endif //ENABLE_DWEETIO
 
+#if ENABLE_PLOTLY
       // Reporting to plot.ly
+      Serial.println("Plot.ly...");
       plotlygraph.plot(tnow, Pwrplnt.getTemperature(), tokens[0]);
       plotlygraph.plot(tnow, Pwrplnt.getAirHumidity(), tokens[1]);
       plotlygraph.plot(tnow, Pwrplnt.getBrightness(), tokens[2]);
@@ -130,6 +150,7 @@ void loop()
       plotlygraph.plot(tnow, Pwrplnt.getWaterLevelOk(), tokens[4]);
       plotlygraph.plot(tnow, Pwrplnt.getPumpState(), tokens[5]);
       plotlygraph.plot(tnow, Pwrplnt.getLightState(), tokens[6]);
+#endif //ENABLE_PLOTLY
     }
 }
 
@@ -139,6 +160,7 @@ void addMsgHandlers()
     sCmd.addCommand("help",    showHelp);
     sCmd.addCommand("showStatus", showStatus);
     sCmd.addCommand("showSettings", showSettings);
+    sCmd.addCommand("showEthernetSettings", showEthernetSettings);
     sCmd.addCommand("setActive", setActive);
     sCmd.addCommand("setMinMoisture", setMinMoisture);
     sCmd.addCommand("setTargetMoisture", setTargetMoisture);
@@ -156,6 +178,7 @@ void showHelp() {
   Serial.println("Available Commands:");
   Serial.println("showStatus");
   Serial.println("showSettings");
+  Serial.println("showEthernetSettings");
   Serial.println("setActive");
   Serial.println("setMinMoisture [%]");
   Serial.println("setTargetMoisture [%]");
@@ -169,6 +192,8 @@ void showHelp() {
 }
 
 void showStatus() {
+    Pwrplnt.performMeasurements();
+
     Serial.println();
     Serial.print(day());
     Serial.print(".");
@@ -215,6 +240,36 @@ void showSettings() {
     Serial.println(Pwrplnt.getSunriseTime());
     Serial.print(" Sunset Time            : ");
     Serial.println(Pwrplnt.getSunsetTime());
+}
+
+void showEthernetSettings() {
+#if ENABLE_ETHERNET
+  Serial.println();
+  Serial.print("MAC    : ");
+  Serial.print(MACaddress[0]);Serial.print(":");
+  Serial.print(MACaddress[1]);Serial.print(":");
+  Serial.print(MACaddress[2]);Serial.print(":");
+  Serial.print(MACaddress[3]);Serial.print(":");
+  Serial.print(MACaddress[4]);Serial.print(":");
+  Serial.print(MACaddress[5]);Serial.println(":");
+  Serial.print("IP     : ");
+  Serial.print(IPaddress[0]);Serial.print(".");
+  Serial.print(IPaddress[1]);Serial.print(".");
+  Serial.print(IPaddress[2]);Serial.print(".");
+  Serial.print(IPaddress[3]);Serial.println(".");
+  Serial.print("Gateway: ");
+  Serial.print(gatewayIPaddress[0]);Serial.print(".");
+  Serial.print(gatewayIPaddress[1]);Serial.print(".");
+  Serial.print(gatewayIPaddress[2]);Serial.print(".");
+  Serial.print(gatewayIPaddress[3]);Serial.println(".");
+  Serial.print("Subnet : ");
+  Serial.print(subnet[0]);Serial.print(".");
+  Serial.print(subnet[1]);Serial.print(".");
+  Serial.print(subnet[2]);Serial.print(".");
+  Serial.print(subnet[3]);Serial.println(".");
+#else
+  Serial.println("Ethernet disabled");
+#endif //ENABLE_ETHERNET
 }
 
 void setActive() {
