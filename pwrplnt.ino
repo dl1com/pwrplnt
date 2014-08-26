@@ -15,11 +15,11 @@
 
 #if ENABLE_ETHERNET
   #include <Ethernet.h>
-  byte MACaddress[]         = {0xDE,0xAD,0xBE,0xEF,0xFE,0xED};
-  byte IPaddress[]          = {192,168,1,123};
+  byte MACaddress[]         = {0xDE,0xAD,0xB0,0x0B,0xCA,0xFE};
+  byte IPaddress[]          = {83,133,178,122};
   byte DNSserverIPaddress[] = {8,8,8,8};
-  byte gatewayIPaddress[]   = {192,168,1,1};
-  byte subnet[]             = {255,255,255,0};
+  byte gatewayIPaddress[]   = {83,133,178,65};
+  byte subnet[]             = {255,255,255,192};
   EthernetClient ethernetClient;
 #endif //ENABLE_ETHERNET
 
@@ -64,7 +64,7 @@ void setup()
 #if ENABLE_PLOTLY
     // plot.ply
     plotlygraph.fileopt="overwrite";
-    bool success = plotlygraph.init();
+    bool success = plotlygraph.init(); // alternatively: extend
     if(!success){while(true){}} // TODO while(true), rlly?
     plotlygraph.openStream();
 #endif //ENABLE_PLOTLY     
@@ -92,6 +92,7 @@ void loop()
     else if(!worked)
     {
         // work
+        Serial.println("");
         Serial.println("working...");
         Pwrplnt.performMeasurements();
         Pwrplnt.performActions();
@@ -113,9 +114,10 @@ void loop()
 
 #if ENABLE_DWEETIO
       // Reporting to dweet.io
+      Serial.print("Dweeting...");
       if(ethernetClient.connect("dweet.io", 80))
       {          
-        Serial.println("Dweeting...");
+        Serial.print("success!");
         ethernetClient.print("GET /dweet/for/");
         ethernetClient.print(DWEETIO_THINGNAME);
         ethernetClient.print("?active=");
@@ -138,7 +140,10 @@ void loop()
         
         ethernetClient.println("HOST dweet.io");
         ethernetClient.println();
+
+        ethernetClient.stop();
       }
+      Serial.println("");
 #endif //ENABLE_DWEETIO
 
 #if ENABLE_PLOTLY
@@ -171,6 +176,7 @@ void addMsgHandlers()
     sCmd.addCommand("setSunriseTime", setSunriseTime);
     sCmd.addCommand("setSunsetTime", setSunsetTime);
     sCmd.addCommand("setTime",  setRTCTime);
+    sCmd.addCommand("resetEEPROM", resetEEPROM);
     sCmd.addDefaultHandler(showHelp);
 }
 
@@ -189,6 +195,7 @@ void showHelp() {
   Serial.println("setSunriseTime [hour] [minute]");
   Serial.println("setSunsetTime [hour] [minute]");
   Serial.println("setTime [year] [mon] [day] [hour] [min] [sec]");
+  Serial.println("resetEEPROM");
   Serial.println();
 }
 
@@ -252,22 +259,22 @@ void showEthernetSettings() {
   Serial.print(MACaddress[2]);Serial.print(":");
   Serial.print(MACaddress[3]);Serial.print(":");
   Serial.print(MACaddress[4]);Serial.print(":");
-  Serial.print(MACaddress[5]);Serial.println(":");
+  Serial.println(MACaddress[5]);
   Serial.print("IP     : ");
   Serial.print(IPaddress[0]);Serial.print(".");
   Serial.print(IPaddress[1]);Serial.print(".");
   Serial.print(IPaddress[2]);Serial.print(".");
-  Serial.print(IPaddress[3]);Serial.println(".");
+  Serial.println(IPaddress[3]);
   Serial.print("Gateway: ");
   Serial.print(gatewayIPaddress[0]);Serial.print(".");
   Serial.print(gatewayIPaddress[1]);Serial.print(".");
   Serial.print(gatewayIPaddress[2]);Serial.print(".");
-  Serial.print(gatewayIPaddress[3]);Serial.println(".");
+  Serial.println(gatewayIPaddress[3]);
   Serial.print("Subnet : ");
   Serial.print(subnet[0]);Serial.print(".");
   Serial.print(subnet[1]);Serial.print(".");
   Serial.print(subnet[2]);Serial.print(".");
-  Serial.print(subnet[3]);Serial.println(".");
+  Serial.println(subnet[3]);
 #else
   Serial.println("Ethernet disabled");
 #endif //ENABLE_ETHERNET
@@ -349,47 +356,49 @@ void setLightIntensity()
 void setSunriseTime()
 {
   char *arg;
-  byte hour = 0;
-  byte minute = 0;
+  byte _hour = 0;
+  byte _min = 0;
   arg = sCmd.next();
   if (arg != NULL) {
-    hour = atoi(arg);
+    _hour = atoi(arg);
   }
   else return;
   arg = sCmd.next();
   if (arg != NULL) {    
-    minute = atoi(arg);
+    _min = atoi(arg);
   }
   else return;
 
   Serial.print("Sunrise set to ");
-  Serial.print(hour);
+  Serial.print(_hour);
   Serial.print(":");
-  Serial.println(minute);
-  Pwrplnt.setSunriseTime((hour*3600) + (minute * 60));
+  Serial.println(_min);
+  time_t t = (_hour*(time_t)3600) + (_min * (time_t)60);
+  Pwrplnt.setSunriseTime(t);
 }
 
 void setSunsetTime()
 {
   char *arg;
-  byte hour = 0;
-  byte minute = 0;
+  byte _hour = 0;
+  byte _min = 0;
   arg = sCmd.next();
   if (arg != NULL) {
-    hour = atoi(arg);
+    _hour = atoi(arg);    
   }
   else return;
   arg = sCmd.next();
   if (arg != NULL) {    
-    minute = atoi(arg);
+    _min = atoi(arg);
   }
   else return;
 
   Serial.print("Sunset set to ");
-  Serial.print(hour);
+  Serial.print(_hour);
   Serial.print(":");
-  Serial.println(minute);
-  Pwrplnt.setSunsetTime((hour*3600) + (minute * 60));
+  Serial.println(_min);
+  time_t t = (_hour*(time_t)3600) + (_min * (time_t)60);
+  Pwrplnt.setSunsetTime(t);
 }
 
 void setRTCTime() {
@@ -425,4 +434,10 @@ void setRTCTime() {
   setTime(tm.Hour,tm.Minute,tm.Second,tm.Day,tm.Month,tm.Year);
   RTC.set(makeTime(tm));
   Serial.println("time set");
+  resetEEPROM();
+}
+
+void resetEEPROM(void)
+{
+  Pwrplnt.resetEEPROM();
 }

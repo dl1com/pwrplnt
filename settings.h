@@ -17,6 +17,6 @@
 // TODO Reservoir Level A12
 
 #define ACTION_INTERVAL 5  /* seconds */
-#define DWEET_INTERVAL  30 /* seconds */
+#define DWEET_INTERVAL  10 /* seconds */
 
 #endif // SETTINGS_H

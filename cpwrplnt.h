@@ -42,6 +42,7 @@ public:
     void setLightIntensity(byte intensity);
     void setSunriseTime(time_t);
     void setSunsetTime(time_t);
+    void resetEEPROM(void);
 
     //Getters
     // Settings

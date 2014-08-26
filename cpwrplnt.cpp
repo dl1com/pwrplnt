@@ -34,6 +34,13 @@ void cPwrplnt::init(void)
     EEPROM_readAnything(ADDR_LASTPUMPSTOP, m_lastPumpStop);
 }
 
+void cPwrplnt::resetEEPROM()
+{
+    time_t tnow = now();
+    EEPROM_writeAnything(ADDR_LASTPUMPSTOP, tnow);
+    EEPROM_writeAnything(ADDR_LASTPUMPSTOP, tnow);
+}
+
 void cPwrplnt::setActive(bool active)
 {
     m_doActions = active;
@@ -126,6 +133,8 @@ void cPwrplnt::performActions(void)
     if(!m_doActions)
     {
         Serial.println(" Pwrplnt disabled");
+        setLight(0);
+        switchPump(false);
         return;
     }
 
@@ -139,13 +148,13 @@ void cPwrplnt::performActions(void)
         // Turn on lights
         // TODO take currently measured brightness into account
         setLight(m_lightIntensity);
-        Serial.println("  Lights on");
+        Serial.println("  Daytime!");
     }
     else
     {
         // Turn the lights off
         setLight(0);
-        Serial.println("  Lights off");
+        Serial.println("  Nighttime!");
     }
 
     // only act with the pump if the level is ok
@@ -165,7 +174,14 @@ void cPwrplnt::performActions(void)
             }
             else
             {
-                Serial.println("but pump not allowed to start again yet");
+                if(m_pumpState)
+                {
+                    Serial.println("pump already running");
+                }
+                else
+                {
+                    Serial.println("but pump not allowed to start again yet");
+                }
             }
         }
 
