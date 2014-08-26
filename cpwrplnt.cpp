@@ -133,7 +133,7 @@ void cPwrplnt::performActions(void)
     if(!m_doActions)
     {
         Serial.println(" Pwrplnt disabled");
-        setLight(0);
+        switchLight(false);
         switchPump(false);
         return;
     }
@@ -147,13 +147,13 @@ void cPwrplnt::performActions(void)
     {
         // Turn on lights
         // TODO take currently measured brightness into account
-        setLight(m_lightIntensity);
+        switchLight(true);
         Serial.println("  Daytime!");
     }
     else
     {
         // Turn the lights off
-        setLight(0);
+        switchLight(false);
         Serial.println("  Nighttime!");
     }
 
@@ -222,9 +222,9 @@ void cPwrplnt::switchPump(bool state)
 
 }
 
-void cPwrplnt::setLight(byte intensity)
+void cPwrplnt::switchLight(bool state)
 {
-    m_lightState = intensity;
+    m_lightState = state;
     // Relais works inverted
     digitalWrite(PIN_LIGHTPWM, !m_lightState);
     // TODO do PWM analogWrite(PIN_LIGHTPWM, !m_lightState);

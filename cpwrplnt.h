@@ -65,7 +65,7 @@ public:
     // States
     bool getPumpState(void) const
         { return m_pumpState; }
-    byte getLightState(void) const
+    bool getLightState(void) const
         { return m_lightState; }
     // Measurements
     byte getMoisture(void) const
@@ -85,7 +85,7 @@ private:
     /* turn pump on or off */
     void switchPump(bool state);
     /* turn light on or off */
-    void setLight(byte intensity);
+    void switchLight(bool state);
 
     // Settings
     /* Activate Actors */
@@ -98,15 +98,15 @@ private:
     byte m_wateringDuration; /* (seconds) */
     /* time to wait for water to settle, before allowing new watering */
     byte m_wateringPause; /* (seconds) */
-    byte m_lightIntensity; /* 0-255 */
+    byte m_lightIntensity; /* 0-255 not used yet */
     time_t m_timeSunrise;
     time_t m_timeSunset;
 
     // States
     bool m_pumpState;
+    bool m_lightState;
     time_t m_lastPumpStart;
     time_t m_lastPumpStop;
-    byte m_lightState;
 
     // Measurements
     byte m_moisture;     /* (%) */
