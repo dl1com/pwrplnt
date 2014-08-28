@@ -432,7 +432,7 @@ void setRTCTime() {
 
   //set time to RTC module
   setTime(tm.Hour,tm.Minute,tm.Second,tm.Day,tm.Month,tm.Year);
-  RTC.set(makeTime(tm));
+  RTC.set(now());
   Serial.println("time set");
   resetEEPROM();
 }
