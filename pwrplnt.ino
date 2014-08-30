@@ -63,7 +63,7 @@ void setup()
 
 #if ENABLE_PLOTLY
     // plot.ply
-    plotlygraph.fileopt="overwrite";
+    plotlygraph.fileopt="extend";
     bool success = plotlygraph.init(); // alternatively: extend
     if(!success){while(true){}} // TODO while(true), rlly?
     plotlygraph.openStream();
@@ -149,13 +149,13 @@ void loop()
 #if ENABLE_PLOTLY
       // Reporting to plot.ly
       Serial.println("Plot.ly...");
-      plotlygraph.plot(tnow, Pwrplnt.getTemperature(), tokens[0]);
-      plotlygraph.plot(tnow, Pwrplnt.getAirHumidity(), tokens[1]);
-      plotlygraph.plot(tnow, Pwrplnt.getBrightness(), tokens[2]);
-      plotlygraph.plot(tnow, Pwrplnt.getMoisture(), tokens[3]);
-      plotlygraph.plot(tnow, Pwrplnt.getWaterLevelOk(), tokens[4]);
-      plotlygraph.plot(tnow, Pwrplnt.getPumpState(), tokens[5]);
-      plotlygraph.plot(tnow, Pwrplnt.getLightState(), tokens[6]);
+      plotlygraph.plot(millis()+14400000, Pwrplnt.getTemperature(), tokens[0]);
+      plotlygraph.plot(millis()+14400000, Pwrplnt.getAirHumidity(), tokens[1]);
+      plotlygraph.plot(millis()+14400000, Pwrplnt.getBrightness(), tokens[2]);
+      plotlygraph.plot(millis()+14400000, Pwrplnt.getMoisture(), tokens[3]);
+      plotlygraph.plot(millis()+14400000, Pwrplnt.getWaterLevelOk(), tokens[4]);
+      plotlygraph.plot(millis()+14400000, Pwrplnt.getPumpState(), tokens[5]);
+      plotlygraph.plot(millis()+14400000, Pwrplnt.getLightState(), tokens[6]);
 #endif //ENABLE_PLOTLY
     }
 }

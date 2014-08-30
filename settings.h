@@ -16,7 +16,7 @@
 #define PIN_DHT11       A11
 // TODO Reservoir Level A12
 
-#define ACTION_INTERVAL 5  /* seconds */
-#define DWEET_INTERVAL  10 /* seconds */
+#define ACTION_INTERVAL 10  /* seconds */
+#define DWEET_INTERVAL  60 /* seconds */
 
 #endif // SETTINGS_H
