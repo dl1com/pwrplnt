@@ -136,6 +136,8 @@ void loop()
         ethernetClient.print(Pwrplnt.getPumpState());
         ethernetClient.print("&lightState=");
         ethernetClient.print(Pwrplnt.getLightState());
+        ethernetClient.print("&lastPumpStart=");
+        ethernetClient.print(Pwrplnt.getLastPumpStart());
         ethernetClient.println(" HTTP/1.1");
         
         ethernetClient.println("HOST dweet.io");

@@ -62,6 +62,8 @@ public:
         { return m_timeSunrise; }
     time_t getSunsetTime(void) const
         { return m_timeSunset; }
+    time_t getLastPumpStart(void) const
+        { return m_lastPumpStart; }
     // States
     bool getPumpState(void) const
         { return m_pumpState; }
